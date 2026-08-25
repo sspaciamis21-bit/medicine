@@ -1,0 +1,180 @@
+// Prisma Schema for Family Medicine Tracker & Reminder System
+// Configured for Hostinger MySQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Household {
+  id           String         @id @default(cuid())
+  name         String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  users        User[]
+  members      FamilyMember[]
+  medicines    Medicine[]
+  pharmacies   Pharmacy[]
+  purchases    Purchase[]
+  mealSettings MealSettings?
+}
+
+model User {
+  id               String     @id @default(cuid())
+  householdId      String
+  username         String     @unique
+  email            String?
+  passwordHash     String
+  role             String     @default("admin") // admin, member
+  pushSubscription String?    @db.Text
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  household        Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+}
+
+model FamilyMember {
+  id           String        @id @default(cuid())
+  householdId  String
+  name         String
+  relationship String        // Father, Mother, Self, Child, Grandparent, Other
+  avatar       String?       // Emoji or avatar code
+  color        String?       // Tailwind badge color class
+  gender       String?
+  age          Int?
+  notes        String?       @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  medicines    Medicine[]
+  doseHistory  DoseHistory[]
+  purchases    Purchase[]
+}
+
+model MealSettings {
+  id                  String     @id @default(cuid())
+  householdId         String     @unique
+  breakfastTime       String     @default("08:00 AM")
+  lunchTime           String     @default("01:30 PM")
+  dinnerTime          String     @default("08:30 PM")
+  defaultBeforeOffset Int        @default(30) // minutes
+  defaultAfterOffset  Int        @default(15) // minutes
+  updatedAt           DateTime   @updatedAt
+
+  household           Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+}
+
+model Medicine {
+  id                 String             @id @default(cuid())
+  householdId        String
+  memberId           String
+  name               String
+  brandName          String?
+  genericName        String?
+  formType           String             // Tablet, Capsule, Syrup, Injection, Insulin, Drops, Cream, Other
+  strength           String             // e.g. 500 mg, 100 IU/ml
+  unit               String             // Tablets, Capsules, Bottles, Vials, Pens
+  quantityPurchased  Float              @default(0)
+  currentQuantity    Float              @default(0)
+  lowStockThreshold  Float              @default(5)
+  expiryDate         String?
+  isInsulin          Boolean            @default(false)
+  insulinType        String?            // Long-acting, Rapid-acting, Mixed
+  penOrVial          String?            // Pen, Vial
+  insulinStorageNote String?            @db.Text
+  openedDate         String?
+  doctorName         String?
+  prescriptionDate   String?
+  instructions       String?            @db.Text
+  status             String             @default("active") // active, completed, stopped
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  household          Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  member             FamilyMember       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  schedules          MedicineSchedule[]
+  doseHistory        DoseHistory[]
+  purchases          Purchase[]
+}
+
+model MedicineSchedule {
+  id             String        @id @default(cuid())
+  medicineId     String
+  frequencyType  String        @default("daily") // daily, custom, weekly
+  specificTime   String?       // "08:00 AM"
+  mealRelation   String        @default("After Food") // Before Food, After Food, With Food, Empty Stomach, Anytime
+  mealType       String?       // Breakfast, Lunch, Dinner
+  offsetMinutes  Int           @default(0)
+  doseAmount     Float         @default(1)
+  doseUnit       String?
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  medicine       Medicine      @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  doseHistory    DoseHistory[]
+}
+
+model DoseHistory {
+  id                String            @id @default(cuid())
+  scheduleId        String?
+  medicineId        String
+  memberId          String
+  scheduledDateTime String
+  actualDateTime    String?
+  status            String            // taken, snoozed, skipped, missed
+  snoozeUntil       String?
+  skipReason        String?
+  recordedBy        String?
+  notes             String?
+  createdAt         DateTime          @default(now())
+
+  schedule          MedicineSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  medicine          Medicine          @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  member            FamilyMember      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Pharmacy {
+  id             String      @id @default(cuid())
+  householdId    String
+  name           String
+  contactPerson  String?
+  phoneNumber    String
+  whatsappNumber String?
+  address        String?     @db.Text
+  isDefault      Boolean     @default(false)
+  notes          String?     @db.Text
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  household      Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  purchases      Purchase[]
+}
+
+model Purchase {
+  id           String        @id @default(cuid())
+  householdId  String
+  memberId     String?
+  medicineId   String?
+  pharmacyId   String?
+  medicineName String
+  quantity     Float
+  unitPrice    Float
+  discount     Float         @default(0)
+  totalAmount  Float
+  paymentMode  String        @default("Cash") // Cash, UPI, Card, Insurance
+  purchaseDate String
+  invoiceUrl   String?       @db.Text
+  createdAt    DateTime      @default(now())
+
+  household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  member       FamilyMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  medicine     Medicine?     @relation(fields: [medicineId], references: [id], onDelete: SetNull)
+  pharmacy     Pharmacy?     @relation(fields: [pharmacyId], references: [id], onDelete: SetNull)
+}

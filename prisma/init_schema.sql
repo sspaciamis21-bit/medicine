@@ -1,0 +1,161 @@
+-- Family Medicine Management System — MySQL Database Initialization
+-- Generated for Database: u434618106_medicine
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 1. Household Table
+CREATE TABLE IF NOT EXISTS `Household` (
+  `id` VARCHAR(191) NOT NULL PRIMARY KEY,
+  `name` VARCHAR(191) NOT NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. User Table
+CREATE TABLE IF NOT EXISTS `User` (
+  `id` VARCHAR(191) NOT NULL PRIMARY KEY,
+  `householdId` VARCHAR(191) NOT NULL,
+  `username` VARCHAR(191) NOT NULL UNIQUE,
+  `email` VARCHAR(191) NULL,
+  `passwordHash` VARCHAR(191) NOT NULL,
+  `role` VARCHAR(191) NOT NULL DEFAULT 'admin',
+  `pushSubscription` TEXT NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  CONSTRAINT `fk_user_household` FOREIGN KEY (`householdId`) REFERENCES `Household` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. FamilyMember Table
+CREATE TABLE IF NOT EXISTS `FamilyMember` (
+  `id` VARCHAR(191) NOT NULL PRIMARY KEY,
+  `householdId` VARCHAR(191) NOT NULL,
+  `name` VARCHAR(191) NOT NULL,
+  `relationship` VARCHAR(191) NOT NULL,
+  `avatar` VARCHAR(191) NULL,
+  `color` VARCHAR(191) NULL,
+  `gender` VARCHAR(191) NULL,
+  `age` INT NULL,
+  `notes` TEXT NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  CONSTRAINT `fk_member_household` FOREIGN KEY (`householdId`) REFERENCES `Household` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. MealSettings Table
+CREATE TABLE IF NOT EXISTS `MealSettings` (
+  `id` VARCHAR(191) NOT NULL PRIMARY KEY,
+  `householdId` VARCHAR(191) NOT NULL UNIQUE,
+  `breakfastTime` VARCHAR(191) NOT NULL DEFAULT '08:00 AM',
+  `lunchTime` VARCHAR(191) NOT NULL DEFAULT '01:30 PM',
+  `dinnerTime` VARCHAR(191) NOT NULL DEFAULT '08:30 PM',
+  `defaultBeforeOffset` INT NOT NULL DEFAULT 30,
+  `defaultAfterOffset` INT NOT NULL DEFAULT 15,
+  `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  CONSTRAINT `fk_meal_household` FOREIGN KEY (`householdId`) REFERENCES `Household` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. Medicine Table
+CREATE TABLE IF NOT EXISTS `Medicine` (
+  `id` VARCHAR(191) NOT NULL PRIMARY KEY,
+  `householdId` VARCHAR(191) NOT NULL,
+  `memberId` VARCHAR(191) NOT NULL,
+  `name` VARCHAR(191) NOT NULL,
+  `brandName` VARCHAR(191) NULL,
+  `genericName` VARCHAR(191) NULL,
+  `formType` VARCHAR(191) NOT NULL,
+  `strength` VARCHAR(191) NOT NULL,
+  `unit` VARCHAR(191) NOT NULL,
+  `quantityPurchased` DOUBLE NOT NULL DEFAULT 0,
+  `currentQuantity` DOUBLE NOT NULL DEFAULT 0,
+  `lowStockThreshold` DOUBLE NOT NULL DEFAULT 5,
+  `expiryDate` VARCHAR(191) NULL,
+  `isInsulin` BOOLEAN NOT NULL DEFAULT FALSE,
+  `insulinType` VARCHAR(191) NULL,
+  `penOrVial` VARCHAR(191) NULL,
+  `insulinStorageNote` TEXT NULL,
+  `openedDate` VARCHAR(191) NULL,
+  `doctorName` VARCHAR(191) NULL,
+  `prescriptionDate` VARCHAR(191) NULL,
+  `instructions` TEXT NULL,
+  `status` VARCHAR(191) NOT NULL DEFAULT 'active',
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  CONSTRAINT `fk_med_household` FOREIGN KEY (`householdId`) REFERENCES `Household` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_med_member` FOREIGN KEY (`memberId`) REFERENCES `FamilyMember` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. MedicineSchedule Table
+CREATE TABLE IF NOT EXISTS `MedicineSchedule` (
+  `id` VARCHAR(191) NOT NULL PRIMARY KEY,
+  `medicineId` VARCHAR(191) NOT NULL,
+  `frequencyType` VARCHAR(191) NOT NULL DEFAULT 'daily',
+  `specificTime` VARCHAR(191) NULL,
+  `mealRelation` VARCHAR(191) NOT NULL DEFAULT 'After Food',
+  `mealType` VARCHAR(191) NULL,
+  `offsetMinutes` INT NOT NULL DEFAULT 0,
+  `doseAmount` DOUBLE NOT NULL DEFAULT 1,
+  `doseUnit` VARCHAR(191) NULL,
+  `isActive` BOOLEAN NOT NULL DEFAULT TRUE,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  CONSTRAINT `fk_sched_medicine` FOREIGN KEY (`medicineId`) REFERENCES `Medicine` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. DoseHistory Table
+CREATE TABLE IF NOT EXISTS `DoseHistory` (
+  `id` VARCHAR(191) NOT NULL PRIMARY KEY,
+  `scheduleId` VARCHAR(191) NULL,
+  `medicineId` VARCHAR(191) NOT NULL,
+  `memberId` VARCHAR(191) NOT NULL,
+  `scheduledDateTime` VARCHAR(191) NOT NULL,
+  `actualDateTime` VARCHAR(191) NULL,
+  `status` VARCHAR(191) NOT NULL,
+  `snoozeUntil` VARCHAR(191) NULL,
+  `skipReason` VARCHAR(191) NULL,
+  `recordedBy` VARCHAR(191) NULL,
+  `notes` VARCHAR(191) NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  CONSTRAINT `fk_dose_schedule` FOREIGN KEY (`scheduleId`) REFERENCES `MedicineSchedule` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_dose_medicine` FOREIGN KEY (`medicineId`) REFERENCES `Medicine` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_dose_member` FOREIGN KEY (`memberId`) REFERENCES `FamilyMember` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. Pharmacy Table
+CREATE TABLE IF NOT EXISTS `Pharmacy` (
+  `id` VARCHAR(191) NOT NULL PRIMARY KEY,
+  `householdId` VARCHAR(191) NOT NULL,
+  `name` VARCHAR(191) NOT NULL,
+  `contactPerson` VARCHAR(191) NULL,
+  `phoneNumber` VARCHAR(191) NOT NULL,
+  `whatsappNumber` VARCHAR(191) NULL,
+  `address` TEXT NULL,
+  `isDefault` BOOLEAN NOT NULL DEFAULT FALSE,
+  `notes` TEXT NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  CONSTRAINT `fk_pharm_household` FOREIGN KEY (`householdId`) REFERENCES `Household` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 9. Purchase Table
+CREATE TABLE IF NOT EXISTS `Purchase` (
+  `id` VARCHAR(191) NOT NULL PRIMARY KEY,
+  `householdId` VARCHAR(191) NOT NULL,
+  `memberId` VARCHAR(191) NULL,
+  `medicineId` VARCHAR(191) NULL,
+  `pharmacyId` VARCHAR(191) NULL,
+  `medicineName` VARCHAR(191) NOT NULL,
+  `quantity` DOUBLE NOT NULL,
+  `unitPrice` DOUBLE NOT NULL,
+  `discount` DOUBLE NOT NULL DEFAULT 0,
+  `totalAmount` DOUBLE NOT NULL,
+  `paymentMode` VARCHAR(191) NOT NULL DEFAULT 'Cash',
+  `purchaseDate` VARCHAR(191) NOT NULL,
+  `invoiceUrl` TEXT NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  CONSTRAINT `fk_purch_household` FOREIGN KEY (`householdId`) REFERENCES `Household` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_purch_member` FOREIGN KEY (`memberId`) REFERENCES `FamilyMember` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_purch_medicine` FOREIGN KEY (`medicineId`) REFERENCES `Medicine` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_purch_pharmacy` FOREIGN KEY (`pharmacyId`) REFERENCES `Pharmacy` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
