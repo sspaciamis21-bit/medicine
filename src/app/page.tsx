@@ -38,7 +38,10 @@ import {
   Sun,
   ShieldCheck,
   Building2,
-  FileText
+  FileText,
+  KeyRound,
+  Mail,
+  Home
 } from 'lucide-react';
 import { alarmEngine } from '@/utils/audioAlarm';
 
@@ -134,7 +137,7 @@ export default function FamilyMedicineApp() {
   });
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [authForm, setAuthForm] = useState({ username: '', password: '', householdName: '', email: '' });
+  const [authForm, setAuthForm] = useState({ username: '', password: '', householdName: '', email: '', adminName: '' });
 
   // Data Collections
   const [household, setHousehold] = useState<any>(null);
@@ -376,6 +379,73 @@ export default function FamilyMedicineApp() {
     }
   }, []);
 
+  // Handle Auth Form Submission
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authForm.username || !authForm.password) {
+      showToast('⚠️ Please enter username and password');
+      return;
+    }
+
+    if (authMode === 'login') {
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: authForm.username,
+            password: authForm.password,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setUser({
+            id: data.user.id,
+            username: data.user.username,
+            householdName: data.household?.name || 'My Family',
+          });
+          setShowAuthModal(false);
+          showToast(`👋 Welcome back, ${data.user.username}!`);
+          loadData();
+        } else {
+          showToast(`⚠️ ${data.error || 'Invalid credentials'}`);
+        }
+      } catch (e) {
+        showToast('Login error');
+      }
+    } else {
+      // Register
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: authForm.username,
+            password: authForm.password,
+            email: authForm.email,
+            householdName: authForm.householdName || `${authForm.username}'s Family`,
+            adminMemberName: authForm.adminName || authForm.username,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setUser({
+            id: data.user.id,
+            username: data.user.username,
+            householdName: data.household?.name || 'My Family',
+          });
+          setShowAuthModal(false);
+          showToast(`🎉 Account created! Welcome, ${data.user.username}!`);
+          loadData();
+        } else {
+          showToast(`⚠️ ${data.error}`);
+        }
+      } catch (e) {
+        showToast('Registration error');
+      }
+    }
+  };
+
   // Trigger high-volume alarm test or real reminder
   const triggerAlarm = (med?: MedicineItem) => {
     const target = med || medicines[0];
@@ -577,7 +647,7 @@ export default function FamilyMedicineApp() {
           avatar: newMember.avatar,
           age: newMember.age,
           notes: newMember.notes,
-          color: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
+          color: 'bg-teal-50 text-teal-700 border border-teal-200',
         }),
       });
       const data = await res.json();
@@ -685,6 +755,133 @@ export default function FamilyMedicineApp() {
   return (
     <div className={`flex flex-col min-h-screen ${darkMode ? 'dark bg-[#0b1120] text-slate-100' : 'bg-slate-50 text-slate-900'} pb-24 transition-colors`}>
       
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* AUTHENTICATION MODAL (LOGIN / REGISTER) */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-teal-600 flex items-center justify-center text-white font-bold">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <h3 className="font-black text-lg text-slate-900 dark:text-white">
+                  {authMode === 'login' ? 'Sign In' : 'Create Family Account'}
+                </h3>
+              </div>
+              <button onClick={() => setShowAuthModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">
+              <button
+                onClick={() => setAuthMode('login')}
+                className={`py-2 rounded-lg transition ${authMode === 'login' ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-white shadow-xs' : 'text-slate-500'}`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => setAuthMode('register')}
+                className={`py-2 rounded-lg transition ${authMode === 'register' ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-white shadow-xs' : 'text-slate-500'}`}
+              >
+                Create Account
+              </button>
+            </div>
+
+            <form onSubmit={handleAuthSubmit} className="space-y-3 text-xs">
+              {authMode === 'register' && (
+                <>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Household / Family Name *</label>
+                    <div className="relative">
+                      <Home className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Sharma Household"
+                        value={authForm.householdName}
+                        onChange={(e) => setAuthForm({ ...authForm, householdName: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Your Name (Admin) *</label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Rajesh Sharma"
+                        value={authForm.adminName}
+                        onChange={(e) => setAuthForm({ ...authForm, adminName: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white font-medium"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Username *</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Username"
+                    value={authForm.username}
+                    onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Password *</label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Password"
+                    value={authForm.password}
+                    onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs rounded-xl shadow-md transition active:scale-95 mt-2"
+              >
+                {authMode === 'login' ? 'Sign In to Account' : 'Register Family Account'}
+              </button>
+
+              {/* Demo 1-Click Login */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUser({ id: 'demo-1', username: 'Rajesh', householdName: 'Sharma Household' });
+                    setShowAuthModal(false);
+                    showToast('⚡ Signed in as Sharma Family Administrator (Rajesh)');
+                  }}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition"
+                >
+                  ⚡ Quick Demo Login (Sharma Household)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ───────────────────────────────────────────────────────────────────────── */}
       {/* LOUD AUDIO ALARM FULLSCREEN MODAL */}
       {/* ───────────────────────────────────────────────────────────────────────── */}
@@ -825,20 +1022,23 @@ export default function FamilyMedicineApp() {
 
             {/* Auth / Login Button */}
             {user ? (
-              <button
-                onClick={() => {
-                  setUser(null);
-                  showToast('👋 Logged out successfully');
-                }}
-                className="p-2 rounded-xl text-slate-500 hover:text-red-600 dark:text-slate-400 transition"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{user.username}</span>
+                <button
+                  onClick={() => {
+                    setUser(null);
+                    showToast('👋 Logged out successfully');
+                  }}
+                  className="p-1 rounded-md text-slate-400 hover:text-red-600 transition"
+                  title="Logout"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="flex items-center gap-1 px-3 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl transition"
+                className="flex items-center gap-1 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs rounded-xl shadow-sm transition active:scale-95"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 Login
@@ -932,17 +1132,17 @@ export default function FamilyMedicineApp() {
           <div className="space-y-4">
             {/* Quick KPI Stats */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="medical-card p-3.5 rounded-2xl dark:bg-slate-900 dark:border-slate-800">
+              <div className="medical-card p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                 <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Scheduled Today</span>
                 <p className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">{filteredMedicines.length} Doses</p>
               </div>
-              <div className="medical-card p-3.5 rounded-2xl dark:bg-slate-900 dark:border-slate-800">
+              <div className="medical-card p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                 <span className="text-[11px] font-semibold text-teal-700 dark:text-teal-400">Taken So Far</span>
                 <p className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-0.5">
                   {filteredMedicines.filter((m) => m.status === 'taken').length} Done
                 </p>
               </div>
-              <div className="medical-card p-3.5 rounded-2xl dark:bg-slate-900 dark:border-slate-800">
+              <div className="medical-card p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                 <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">Pending Doses</span>
                 <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
                   {filteredMedicines.filter((m) => m.status === 'pending').length} Left
@@ -967,7 +1167,7 @@ export default function FamilyMedicineApp() {
                 return (
                   <div
                     key={med.id}
-                    className={`medical-card p-4 rounded-2xl dark:bg-slate-900 dark:border-slate-800 ${
+                    className={`medical-card p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ${
                       isTaken ? 'bg-slate-50/70 dark:bg-slate-950/40 opacity-75' : 'hover:border-teal-300'
                     }`}
                   >
@@ -1065,7 +1265,7 @@ export default function FamilyMedicineApp() {
                 const estimatedDays = Math.floor(med.currentQuantity / (med.doseAmount || 1));
 
                 return (
-                  <div key={med.id} className="medical-card p-4 rounded-2xl dark:bg-slate-900 dark:border-slate-800 space-y-3">
+                  <div key={med.id} className="medical-card p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
@@ -1141,7 +1341,7 @@ export default function FamilyMedicineApp() {
             </div>
 
             {medicines.filter((m) => m.isInsulin).length === 0 ? (
-              <div className="medical-card p-8 rounded-2xl text-center space-y-3 dark:bg-slate-900 dark:border-slate-800">
+              <div className="medical-card p-8 rounded-2xl text-center space-y-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                 <Syringe className="w-12 h-12 text-slate-300 mx-auto" />
                 <p className="text-sm font-bold text-slate-600 dark:text-slate-400">No active insulin records found</p>
                 <button
@@ -1158,7 +1358,7 @@ export default function FamilyMedicineApp() {
               medicines
                 .filter((m) => m.isInsulin)
                 .map((ins) => (
-                  <div key={ins.id} className="medical-card p-5 rounded-2xl border-violet-200 dark:border-violet-800/50 dark:bg-slate-900 space-y-4">
+                  <div key={ins.id} className="medical-card p-5 rounded-2xl bg-white border border-violet-200 dark:border-violet-800/50 dark:bg-slate-900 space-y-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <span className="p-2.5 rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300">
@@ -1244,7 +1444,7 @@ export default function FamilyMedicineApp() {
 
             <div className="space-y-3.5">
               {pharmacies.map((store) => (
-                <div key={store.id} className="medical-card p-4 rounded-2xl dark:bg-slate-900 dark:border-slate-800 space-y-3">
+                <div key={store.id} className="medical-card p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2">
@@ -1318,19 +1518,19 @@ export default function FamilyMedicineApp() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className="medical-card p-4 rounded-2xl dark:bg-slate-900 dark:border-slate-800">
+              <div className="medical-card p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">This Week</span>
                 <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">₹ {expenses.thisWeekSpend}</p>
                 <span className="text-[10px] text-teal-600 font-bold flex items-center gap-1 mt-1">
                   <TrendingUp className="w-3 h-3" /> -8% vs last week
                 </span>
               </div>
-              <div className="medical-card p-4 rounded-2xl dark:bg-slate-900 dark:border-slate-800">
+              <div className="medical-card p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">This Month</span>
                 <p className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-1">₹ {expenses.thisMonthSpend}</p>
                 <span className="text-[10px] text-slate-500 mt-1 block font-medium">Monthly budget: ₹ 6,000</span>
               </div>
-              <div className="medical-card p-4 rounded-2xl col-span-2 sm:col-span-1 dark:bg-slate-900 dark:border-slate-800">
+              <div className="medical-card p-4 rounded-2xl col-span-2 sm:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Monthly Average</span>
                 <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">₹ {expenses.monthlyAvg}</p>
                 <span className="text-[10px] text-slate-500 mt-1 block font-medium">Across {members.length} members</span>
@@ -1338,7 +1538,7 @@ export default function FamilyMedicineApp() {
             </div>
 
             {/* Member Expense Breakdown */}
-            <div className="medical-card p-5 rounded-2xl dark:bg-slate-900 dark:border-slate-800 space-y-3">
+            <div className="medical-card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
               <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Expense Breakdown by Member</h4>
               <div className="space-y-2.5">
                 {[
@@ -1361,7 +1561,7 @@ export default function FamilyMedicineApp() {
             </div>
 
             {/* Recent Purchases List */}
-            <div className="medical-card p-5 rounded-2xl dark:bg-slate-900 dark:border-slate-800 space-y-3">
+            <div className="medical-card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
               <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Recent Purchases & Refill History</h4>
               <div className="space-y-2">
                 {purchases.map((p) => (
@@ -1394,7 +1594,7 @@ export default function FamilyMedicineApp() {
               <p className="text-xs text-slate-500 dark:text-slate-400">Full audit log of taken, missed, and skipped doses</p>
             </div>
 
-            <div className="medical-card rounded-2xl overflow-hidden dark:bg-slate-900 dark:border-slate-800">
+            <div className="medical-card rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase font-bold border-b border-slate-200 dark:border-slate-700">
@@ -1450,7 +1650,7 @@ export default function FamilyMedicineApp() {
             </h3>
 
             {/* Meal Times Configuration */}
-            <div className="medical-card p-5 rounded-2xl dark:bg-slate-900 dark:border-slate-800 space-y-4">
+            <div className="medical-card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
               <div>
                 <h4 className="font-bold text-slate-900 dark:text-white text-sm">Central Household Meal Timings</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -1795,6 +1995,95 @@ export default function FamilyMedicineApp() {
                   className="flex-1 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-extrabold rounded-xl"
                 >
                   Add Member
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* ADD PHARMACY MODAL (Section 10 Spec) */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {showAddPharmacyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+            <h3 className="font-black text-lg text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-teal-600" />
+              Add Medical Store
+            </h3>
+
+            <form onSubmit={handleAddPharmacySubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Store / Pharmacy Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Apollo Pharmacy, MedPlus"
+                  value={newPharmacy.name}
+                  onChange={(e) => setNewPharmacy({ ...newPharmacy, name: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Contact Person (Chemist)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Mr. Sharma"
+                  value={newPharmacy.contactPerson}
+                  onChange={(e) => setNewPharmacy({ ...newPharmacy, contactPerson: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Mobile / Dial Number *</label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="e.g. +919876543210"
+                  value={newPharmacy.phoneNumber}
+                  onChange={(e) => setNewPharmacy({ ...newPharmacy, phoneNumber: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">WhatsApp Number (Optional)</label>
+                <input
+                  type="tel"
+                  placeholder="e.g. +919876543210"
+                  value={newPharmacy.whatsappNumber}
+                  onChange={(e) => setNewPharmacy({ ...newPharmacy, whatsappNumber: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Address (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Shop No., Market, City"
+                  value={newPharmacy.address}
+                  onChange={(e) => setNewPharmacy({ ...newPharmacy, address: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddPharmacyModal(false)}
+                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-extrabold rounded-xl"
+                >
+                  Save Store
                 </button>
               </div>
             </form>
