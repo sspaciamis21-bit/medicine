@@ -3,10 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --background: #090d16;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --primary: #0d9488;
+  --primary-hover: #0f766e;
+}
+
+.dark {
+  --background: #0b1120;
   --foreground: #f8fafc;
-  --card-bg: rgba(22, 30, 46, 0.85);
-  --card-border: rgba(255, 255, 255, 0.08);
+  --card-bg: #131d31;
+  --card-border: #1e293b;
 }
 
 @layer base {
@@ -15,33 +24,30 @@
     color: var(--foreground);
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     -webkit-tap-highlight-color: transparent;
-    user-select: none;
   }
 }
 
-/* Glassmorphism card utilities */
-.glass-card {
+/* Premium Medical Cards */
+.medical-card {
   background: var(--card-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--card-border);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
 }
 
-.glass-card-glow {
-  background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12), transparent 70%), var(--card-bg);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+.medical-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
 }
 
 /* Custom pulsing animation for alarm */
 @keyframes pulse-ring {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
   }
   70% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 25px rgba(239, 68, 68, 0);
+    transform: scale(1.04);
+    box-shadow: 0 0 0 24px rgba(239, 68, 68, 0);
   }
   100% {
     transform: scale(0.95);
@@ -53,7 +59,7 @@
   animation: pulse-ring 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
 }
 
-/* Custom scrollbar for mobile pill bars */
+/* Hide scrollbar utility */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }

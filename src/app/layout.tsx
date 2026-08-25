@@ -7,13 +7,13 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "MediFamily",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#10b981",
+  themeColor: "#0d9488",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -35,7 +35,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-[#090d16] text-slate-100 antialiased font-sans flex flex-col justify-between">
+      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased font-sans flex flex-col justify-between selection:bg-teal-500 selection:text-white">
         {children}
       </body>
     </html>
