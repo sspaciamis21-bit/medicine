@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET /api/household - Fetch or auto-seed initial household with members & meal settings
-export async function GET() {
+// GET /api/household?id=...
+export async function GET(req: Request) {
   try {
-    let household = await prisma.household.findFirst({
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id') || searchParams.get('householdId');
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Household ID required' }, { status: 400 });
+    }
+
+    const household = await prisma.household.findUnique({
+      where: { id },
       include: {
         members: true,
         mealSettings: true,
@@ -12,47 +20,8 @@ export async function GET() {
       },
     });
 
-    // Auto-initialize default household if first run
     if (!household) {
-      household = await prisma.household.create({
-        data: {
-          name: 'Our Family',
-          mealSettings: {
-            create: {
-              breakfastTime: '08:00 AM',
-              lunchTime: '01:30 PM',
-              dinnerTime: '08:30 PM',
-              defaultBeforeOffset: 30,
-              defaultAfterOffset: 15,
-            },
-          },
-          members: {
-            create: [
-              { name: 'Grandpa', relationship: 'Grandparent', avatar: '👴', color: 'amber' },
-              { name: 'Father', relationship: 'Father', avatar: '👨', color: 'emerald' },
-              { name: 'Mother', relationship: 'Mother', avatar: '👩', color: 'violet' },
-              { name: 'Self', relationship: 'Self', avatar: '🧑', color: 'cyan' },
-            ],
-          },
-          pharmacies: {
-            create: [
-              {
-                name: 'Apollo 24/7 Pharmacy',
-                contactPerson: 'Mr. Rakesh',
-                phoneNumber: '+919876543210',
-                whatsappNumber: '+919876543210',
-                address: 'Shop 12, Central Market, Green Park',
-                isDefault: true,
-              },
-            ],
-          },
-        },
-        include: {
-          members: true,
-          mealSettings: true,
-          pharmacies: true,
-        },
-      });
+      return NextResponse.json({ success: false, error: 'Household not found' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, household });
@@ -61,34 +30,41 @@ export async function GET() {
   }
 }
 
-// POST /api/household - Update household or meal settings
-export async function POST(req: Request) {
+// PUT /api/household - Update household or meal settings
+export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { householdId, name, mealSettings } = body;
+    const { id, householdId, name, mealSettings } = body;
+    const targetId = id || householdId;
+
+    if (!targetId) {
+      return NextResponse.json({ success: false, error: 'Household ID required' }, { status: 400 });
+    }
 
     if (name) {
       await prisma.household.update({
-        where: { id: householdId },
+        where: { id: targetId },
         data: { name },
       });
     }
 
     if (mealSettings) {
       await prisma.mealSettings.upsert({
-        where: { householdId },
+        where: { householdId: targetId },
         update: {
           breakfastTime: mealSettings.breakfastTime,
           lunchTime: mealSettings.lunchTime,
           dinnerTime: mealSettings.dinnerTime,
-          defaultBeforeOffset: mealSettings.defaultBeforeOffset ?? 30,
-          defaultAfterOffset: mealSettings.defaultAfterOffset ?? 15,
+          defaultBeforeOffset: Number(mealSettings.defaultBeforeOffset ?? 30),
+          defaultAfterOffset: Number(mealSettings.defaultAfterOffset ?? 15),
         },
         create: {
-          householdId,
+          householdId: targetId,
           breakfastTime: mealSettings.breakfastTime || '08:00 AM',
           lunchTime: mealSettings.lunchTime || '01:30 PM',
           dinnerTime: mealSettings.dinnerTime || '08:30 PM',
+          defaultBeforeOffset: Number(mealSettings.defaultBeforeOffset ?? 30),
+          defaultAfterOffset: Number(mealSettings.defaultAfterOffset ?? 15),
         },
       });
     }

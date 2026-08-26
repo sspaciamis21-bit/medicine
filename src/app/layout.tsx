@@ -1,19 +1,20 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "MediFamily — Smart Family Medicine Organizer & Loud Reminders",
-  description: "Track family medicines, meal-linked schedules, loud volume alarm reminders, stock depletion, pharmacy reorders, and monthly expenses.",
+  title: "Family Medicine Management & Reminder System",
+  description: "Organize family medicines, track stock & expiry, meal-linked reminders, insulin logs, 1-tap pharmacy reorders, and expense tracking.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "MediFamily",
+    title: "Family Medicine",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d9488",
+  themeColor: "#10847e",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -35,8 +36,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased font-sans flex flex-col justify-between selection:bg-teal-500 selection:text-white">
-        {children}
+      <body className="min-h-screen bg-[#f4f1eb] text-[#1c2a38] antialiased font-sans flex flex-col justify-between selection:bg-[#10847e] selection:text-white">
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

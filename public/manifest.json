@@ -1,11 +1,11 @@
 {
-  "name": "Family Medicine Tracker & Reminder",
-  "short_name": "MediFamily",
+  "name": "Family Medicine Management & Reminder System",
+  "short_name": "Family Medicine",
   "description": "Smart family medicine organizer, meal-linked reminders, loud audio alerts, stock tracking, and expense monitor",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#090d16",
-  "theme_color": "#10b981",
+  "background_color": "#f4f1eb",
+  "theme_color": "#10847e",
   "orientation": "portrait",
   "icons": [
     {

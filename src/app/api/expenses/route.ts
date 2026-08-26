@@ -6,11 +6,17 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const householdId = searchParams.get('householdId');
 
-    const whereClause: any = {};
-    if (householdId) whereClause.householdId = householdId;
+    if (!householdId) {
+      return NextResponse.json({
+        success: true,
+        metrics: { thisWeekSpend: 0, thisMonthSpend: 0, lastMonthSpend: 0, threeMonthSpend: 0, weeklyAvg: 0, monthlyAvg: 0 },
+        memberBreakdown: [],
+        medicineBreakdown: [],
+      });
+    }
 
     const purchases = await prisma.purchase.findMany({
-      where: whereClause,
+      where: { householdId },
       include: {
         member: true,
         medicine: true,
@@ -44,7 +50,7 @@ export async function GET(req: Request) {
       if (pDate >= startOfThreeMonthsAgo) threeMonthSpend += amt;
 
       // Member breakdown
-      const memberName = p.member?.name || 'Household General';
+      const memberName = p.member?.name || 'General Household';
       if (!memberSpendMap[memberName]) memberSpendMap[memberName] = { name: memberName, amount: 0 };
       memberSpendMap[memberName].amount += amt;
 

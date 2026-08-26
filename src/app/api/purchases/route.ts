@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET /api/purchases - Fetch purchase history
+// GET /api/purchases?householdId=... - Fetch purchase history strictly for this household
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const householdId = searchParams.get('householdId');
     const memberId = searchParams.get('memberId');
 
-    const whereClause: any = {};
-    if (householdId) whereClause.householdId = householdId;
+    if (!householdId) {
+      return NextResponse.json({ success: true, purchases: [] });
+    }
+
+    const whereClause: any = { householdId };
     if (memberId && memberId !== 'all') whereClause.memberId = memberId;
 
     const purchases = await prisma.purchase.findMany({
@@ -47,15 +50,19 @@ export async function POST(req: Request) {
       invoiceUrl,
     } = body;
 
+    if (!householdId) {
+      return NextResponse.json({ success: false, error: 'Household ID is required' }, { status: 400 });
+    }
+
     const computedTotal = totalAmount ?? Number(quantity || 0) * Number(unitPrice || 0) - Number(discount || 0);
 
     const purchase = await prisma.purchase.create({
       data: {
         householdId,
-        memberId,
-        medicineId,
-        pharmacyId,
-        medicineName,
+        memberId: memberId || null,
+        medicineId: medicineId || null,
+        pharmacyId: pharmacyId || null,
+        medicineName: medicineName || 'Medicine',
         quantity: Number(quantity || 1),
         unitPrice: Number(unitPrice || 0),
         discount: Number(discount || 0),

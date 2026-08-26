@@ -21,6 +21,7 @@ model Household {
   medicines    Medicine[]
   pharmacies   Pharmacy[]
   purchases    Purchase[]
+  reorders     ReorderList[]
   mealSettings MealSettings?
 }
 
@@ -43,8 +44,8 @@ model FamilyMember {
   householdId  String
   name         String
   relationship String        // Father, Mother, Self, Child, Grandparent, Other
-  avatar       String?       // Emoji or avatar code
-  color        String?       // Tailwind badge color class
+  avatar       String?       // Emoji or avatar icon
+  color        String?       // Color badge
   gender       String?
   age          Int?
   notes        String?       @db.Text
@@ -79,11 +80,12 @@ model Medicine {
   genericName        String?
   formType           String             // Tablet, Capsule, Syrup, Injection, Insulin, Drops, Cream, Other
   strength           String             // e.g. 500 mg, 100 IU/ml
-  unit               String             // Tablets, Capsules, Bottles, Vials, Pens
+  unit               String             // Tablets, Capsules, Bottles, Vials, Pens, etc.
   quantityPurchased  Float              @default(0)
   currentQuantity    Float              @default(0)
   lowStockThreshold  Float              @default(5)
   expiryDate         String?
+  expiryAlertDays    Int                @default(30)
   isInsulin          Boolean            @default(false)
   insulinType        String?            // Long-acting, Rapid-acting, Mixed
   penOrVial          String?            // Pen, Vial
@@ -91,6 +93,7 @@ model Medicine {
   openedDate         String?
   doctorName         String?
   prescriptionDate   String?
+  duration           String?
   instructions       String?            @db.Text
   status             String             @default("active") // active, completed, stopped
   createdAt          DateTime           @default(now())
@@ -101,6 +104,7 @@ model Medicine {
   schedules          MedicineSchedule[]
   doseHistory        DoseHistory[]
   purchases          Purchase[]
+  reorderItems       ReorderItem[]
 }
 
 model MedicineSchedule {
@@ -141,20 +145,21 @@ model DoseHistory {
 }
 
 model Pharmacy {
-  id             String      @id @default(cuid())
+  id             String        @id @default(cuid())
   householdId    String
   name           String
   contactPerson  String?
   phoneNumber    String
   whatsappNumber String?
-  address        String?     @db.Text
-  isDefault      Boolean     @default(false)
-  notes          String?     @db.Text
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  address        String?       @db.Text
+  isDefault      Boolean       @default(false)
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  household      Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  household      Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
   purchases      Purchase[]
+  reorders       ReorderList[]
 }
 
 model Purchase {
@@ -168,7 +173,7 @@ model Purchase {
   unitPrice    Float
   discount     Float         @default(0)
   totalAmount  Float
-  paymentMode  String        @default("Cash") // Cash, UPI, Card, Insurance
+  paymentMode  String        @default("UPI") // Cash, UPI, Card, Insurance
   purchaseDate String
   invoiceUrl   String?       @db.Text
   createdAt    DateTime      @default(now())
@@ -177,4 +182,29 @@ model Purchase {
   member       FamilyMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
   medicine     Medicine?     @relation(fields: [medicineId], references: [id], onDelete: SetNull)
   pharmacy     Pharmacy?     @relation(fields: [pharmacyId], references: [id], onDelete: SetNull)
+}
+
+model ReorderList {
+  id           String        @id @default(cuid())
+  householdId  String
+  pharmacyId   String?
+  status       String        @default("pending") // pending, ordered, received, cancelled
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  pharmacy     Pharmacy?     @relation(fields: [pharmacyId], references: [id], onDelete: SetNull)
+  items        ReorderItem[]
+}
+
+model ReorderItem {
+  id            String       @id @default(cuid())
+  reorderListId String
+  medicineId    String
+  quantityNeeded Float       @default(1)
+  status        String       @default("pending")
+
+  reorderList   ReorderList  @relation(fields: [reorderListId], references: [id], onDelete: Cascade)
+  medicine      Medicine     @relation(fields: [medicineId], references: [id], onDelete: Cascade)
 }

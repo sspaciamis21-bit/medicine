@@ -68,15 +68,19 @@ export async function POST(req: Request) {
   }
 }
 
-// GET /api/dose-history - Fetch adherence logs
+// GET /api/dose-history?householdId=... - Fetch adherence logs strictly for this household
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
+    const householdId = searchParams.get('householdId');
     const memberId = searchParams.get('memberId');
     const medicineId = searchParams.get('medicineId');
-    const limit = Number(searchParams.get('limit') || 50);
+    const limit = Number(searchParams.get('limit') || 100);
 
     const whereClause: any = {};
+    if (householdId) {
+      whereClause.medicine = { householdId };
+    }
     if (memberId && memberId !== 'all') whereClause.memberId = memberId;
     if (medicineId) whereClause.medicineId = medicineId;
 
