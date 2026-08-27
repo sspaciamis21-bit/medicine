@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: "Family Medicine Management & Reminder System",
   description: "Organize family medicines, track stock & expiry, meal-linked reminders, insulin logs, 1-tap pharmacy reorders, and expense tracking.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
