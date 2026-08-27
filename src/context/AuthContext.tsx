@@ -15,15 +15,18 @@ interface AuthContextType {
   loading: boolean;
   selectedMember: string;
   setSelectedMember: (id: string) => void;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (data: {
-    username: string;
-    password: string;
-    householdName: string;
-    adminName: string;
-    email?: string;
-    phone?: string;
-  }) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+  register: (
+    data: {
+      username: string;
+      password: string;
+      householdName: string;
+      adminName: string;
+      email?: string;
+      phone?: string;
+    },
+    rememberMe?: boolean
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -35,11 +38,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [selectedMember, setSelectedMember] = useState<string>('all');
 
   useEffect(() => {
-    // Check saved session in localStorage
+    // Check saved session in localStorage (persistent) or sessionStorage (session-only)
     try {
-      const stored = localStorage.getItem('medifamily_user');
-      if (stored) {
-        setUser(JSON.parse(stored));
+      const local = typeof window !== 'undefined' ? localStorage.getItem('medifamily_user') : null;
+      const session = typeof window !== 'undefined' ? sessionStorage.getItem('medifamily_user') : null;
+
+      if (local) {
+        setUser(JSON.parse(local));
+      } else if (session) {
+        setUser(JSON.parse(session));
       }
     } catch (e) {
       console.error('Session load error:', e);
@@ -48,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, rememberMe: boolean = true) => {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -65,7 +72,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           householdName: data.household?.name || 'My Family',
         };
         setUser(authUser);
-        localStorage.setItem('medifamily_user', JSON.stringify(authUser));
+
+        if (rememberMe) {
+          localStorage.setItem('medifamily_user', JSON.stringify(authUser));
+          localStorage.setItem('medifamily_saved_username', username);
+          sessionStorage.removeItem('medifamily_user');
+          // Set 1-year persistent cookie
+          document.cookie = `medifamily_user=${encodeURIComponent(JSON.stringify(authUser))}; path=/; max-age=31536000; SameSite=Lax`;
+        } else {
+          sessionStorage.setItem('medifamily_user', JSON.stringify(authUser));
+          localStorage.removeItem('medifamily_user');
+          localStorage.removeItem('medifamily_saved_username');
+          document.cookie = 'medifamily_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        }
+
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Login failed' };
@@ -75,14 +95,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (data: {
-    username: string;
-    password: string;
-    householdName: string;
-    adminName: string;
-    email?: string;
-    phone?: string;
-  }) => {
+  const register = async (
+    data: {
+      username: string;
+      password: string;
+      householdName: string;
+      adminName: string;
+      email?: string;
+      phone?: string;
+    },
+    rememberMe: boolean = true
+  ) => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -99,7 +122,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           householdName: resData.household?.name || 'My Family',
         };
         setUser(authUser);
-        localStorage.setItem('medifamily_user', JSON.stringify(authUser));
+
+        if (rememberMe) {
+          localStorage.setItem('medifamily_user', JSON.stringify(authUser));
+          localStorage.setItem('medifamily_saved_username', data.username);
+          sessionStorage.removeItem('medifamily_user');
+          document.cookie = `medifamily_user=${encodeURIComponent(JSON.stringify(authUser))}; path=/; max-age=31536000; SameSite=Lax`;
+        } else {
+          sessionStorage.setItem('medifamily_user', JSON.stringify(authUser));
+          localStorage.removeItem('medifamily_user');
+          localStorage.removeItem('medifamily_saved_username');
+          document.cookie = 'medifamily_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        }
+
         return { success: true };
       } else {
         return { success: false, error: resData.error || 'Registration failed' };
@@ -111,7 +146,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('medifamily_user');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('medifamily_user');
+      sessionStorage.removeItem('medifamily_user');
+      document.cookie = 'medifamily_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      window.location.href = '/';
+    }
   };
 
   return (

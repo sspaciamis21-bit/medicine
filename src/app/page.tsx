@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pill, KeyRound, User, Home, ArrowRight, ShieldCheck, HeartPulse, CheckCircle2, AlertCircle, Mail, Phone } from 'lucide-react';
+import { Pill, KeyRound, User, Home, ArrowRight, HeartPulse, CheckCircle2, AlertCircle, Mail, Phone } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 function AuthContent() {
@@ -10,6 +10,7 @@ function AuthContent() {
   const { user, login, register, loading } = useAuth();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -26,6 +27,16 @@ function AuthContent() {
       router.push('/dashboard');
     }
   }, [user, loading, router]);
+
+  // Auto-populate saved username if remembered previously
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem('medifamily_saved_username');
+      if (savedUser) {
+        setForm((prev) => ({ ...prev, username: savedUser }));
+      }
+    } catch (e) {}
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +71,7 @@ function AuthContent() {
     setSubmitting(true);
 
     if (mode === 'login') {
-      const res = await login(form.username, form.password);
+      const res = await login(form.username, form.password, rememberMe);
       setSubmitting(false);
       if (res.success) {
         router.push('/dashboard');
@@ -68,14 +79,17 @@ function AuthContent() {
         setError(res.error || 'Invalid credentials');
       }
     } else {
-      const res = await register({
-        username: form.username,
-        password: form.password,
-        householdName: form.householdName || `${form.username}'s Family`,
-        adminName: form.adminName || form.username,
-        email: form.email,
-        phone: form.phone,
-      });
+      const res = await register(
+        {
+          username: form.username,
+          password: form.password,
+          householdName: form.householdName || `${form.username}'s Family`,
+          adminName: form.adminName || form.username,
+          email: form.email,
+          phone: form.phone,
+        },
+        rememberMe
+      );
       setSubmitting(false);
       if (res.success) {
         router.push('/dashboard');
@@ -124,7 +138,7 @@ function AuthContent() {
           </h1>
 
           <p className="text-sm text-[#4b5563] leading-relaxed">
-            A comprehensive, multi-member medicine organizer for Indian households. Manage elderly parents' daily prescriptions, child syrups, insulin dosage logs, stock replenishment, and medical store contacts in one place.
+            A comprehensive, multi-member medicine organizer for Indian households. Manage elderly parents&apos; daily prescriptions, child syrups, insulin dosage logs, stock replenishment, and medical store contacts in one place.
           </p>
 
           <div className="space-y-3 pt-2">
@@ -168,10 +182,11 @@ function AuthContent() {
                 setMode('login');
                 setError(null);
               }}
-              className={`py-2 rounded-lg transition ${mode === 'login'
-                ? 'bg-white text-[#10847e] shadow-xs'
-                : 'text-[#6b7280] hover:text-[#1c2a38]'
-                }`}
+              className={`py-2 rounded-lg transition ${
+                mode === 'login'
+                  ? 'bg-white text-[#10847e] shadow-xs'
+                  : 'text-[#6b7280] hover:text-[#1c2a38]'
+              }`}
             >
               Sign In
             </button>
@@ -181,10 +196,11 @@ function AuthContent() {
                 setMode('register');
                 setError(null);
               }}
-              className={`py-2 rounded-lg transition ${mode === 'register'
-                ? 'bg-white text-[#10847e] shadow-xs'
-                : 'text-[#6b7280] hover:text-[#1c2a38]'
-                }`}
+              className={`py-2 rounded-lg transition ${
+                mode === 'register'
+                  ? 'bg-white text-[#10847e] shadow-xs'
+                  : 'text-[#6b7280] hover:text-[#1c2a38]'
+              }`}
             >
               Register Family
             </button>
@@ -288,6 +304,19 @@ function AuthContent() {
                   className="w-full bg-[#fbf9f5] border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[#1c2a38] font-medium focus:border-[#10847e] outline-hidden text-sm"
                 />
               </div>
+            </div>
+
+            {/* Remember Me Option */}
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-[#4b5563] text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded-md accent-[#10847e] cursor-pointer"
+                />
+                <span>Remember me on this device (Stay signed in)</span>
+              </label>
             </div>
 
             <button
