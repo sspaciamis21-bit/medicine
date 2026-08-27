@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pill, KeyRound, User, Home, ArrowRight, ShieldCheck, HeartPulse, CheckCircle2 } from 'lucide-react';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { Pill, KeyRound, User, Home, ArrowRight, ShieldCheck, HeartPulse, CheckCircle2, AlertCircle, Mail, Phone } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 function AuthContent() {
   const router = useRouter();
@@ -16,6 +16,7 @@ function AuthContent() {
     householdName: '',
     adminName: '',
     email: '',
+    phone: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -29,6 +30,33 @@ function AuthContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Validation
+    if (mode === 'register') {
+      if (form.password.length < 8) {
+        setError('Password must be at least 8 characters long');
+        return;
+      }
+
+      if (!/[a-zA-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+        setError('Password must contain both letters and numbers');
+        return;
+      }
+
+      if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+        setError('Please enter a valid email address');
+        return;
+      }
+
+      if (form.phone) {
+        const cleanPhone = form.phone.replace(/[\s\-\+\(\)]/g, '').slice(-10);
+        if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+          setError('Please enter a valid 10-digit mobile number');
+          return;
+        }
+      }
+    }
+
     setSubmitting(true);
 
     if (mode === 'login') {
@@ -46,6 +74,7 @@ function AuthContent() {
         householdName: form.householdName || `${form.username}'s Family`,
         adminName: form.adminName || form.username,
         email: form.email,
+        phone: form.phone,
       });
       setSubmitting(false);
       if (res.success) {
@@ -139,11 +168,10 @@ function AuthContent() {
                 setMode('login');
                 setError(null);
               }}
-              className={`py-2 rounded-lg transition ${
-                mode === 'login'
-                  ? 'bg-white text-[#10847e] shadow-xs'
-                  : 'text-[#6b7280] hover:text-[#1c2a38]'
-              }`}
+              className={`py-2 rounded-lg transition ${mode === 'login'
+                ? 'bg-white text-[#10847e] shadow-xs'
+                : 'text-[#6b7280] hover:text-[#1c2a38]'
+                }`}
             >
               Sign In
             </button>
@@ -153,19 +181,19 @@ function AuthContent() {
                 setMode('register');
                 setError(null);
               }}
-              className={`py-2 rounded-lg transition ${
-                mode === 'register'
-                  ? 'bg-white text-[#10847e] shadow-xs'
-                  : 'text-[#6b7280] hover:text-[#1c2a38]'
-              }`}
+              className={`py-2 rounded-lg transition ${mode === 'register'
+                ? 'bg-white text-[#10847e] shadow-xs'
+                : 'text-[#6b7280] hover:text-[#1c2a38]'
+                }`}
             >
               Register Family
             </button>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200">
-              {error}
+            <div className="p-3 bg-rose-50 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -201,6 +229,34 @@ function AuthContent() {
                     />
                   </div>
                 </div>
+
+                <div>
+                  <label className="font-bold text-[#374151] block mb-1">Mobile Number (Optional)</label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="tel"
+                      placeholder="10-digit mobile number"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      className="w-full bg-[#fbf9f5] border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[#1c2a38] font-medium focus:border-[#10847e] outline-hidden text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#374151] block mb-1">Email Address (Optional)</label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="email"
+                      placeholder="name@example.com"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      className="w-full bg-[#fbf9f5] border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[#1c2a38] font-medium focus:border-[#10847e] outline-hidden text-sm"
+                    />
+                  </div>
+                </div>
               </>
             )}
 
@@ -214,7 +270,7 @@ function AuthContent() {
                   placeholder="Enter username"
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  className="w-full bg-[#fbf9f5] border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[#1c2a38] font-medium focus:border-[#10847e] outline-hidden"
+                  className="w-full bg-[#fbf9f5] border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[#1c2a38] font-medium focus:border-[#10847e] outline-hidden text-sm"
                 />
               </div>
             </div>
@@ -229,7 +285,7 @@ function AuthContent() {
                   placeholder="Enter password"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full bg-[#fbf9f5] border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[#1c2a38] font-medium focus:border-[#10847e] outline-hidden"
+                  className="w-full bg-[#fbf9f5] border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[#1c2a38] font-medium focus:border-[#10847e] outline-hidden text-sm"
                 />
               </div>
             </div>

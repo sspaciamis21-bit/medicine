@@ -36,6 +36,21 @@ export default function PharmacyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.phoneNumber) { showToast('⚠️ Name and phone are required'); return; }
+
+    const cleanPhone = form.phoneNumber.replace(/[\s\-\+\(\)]/g, '').slice(-10);
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      showToast('⚠️ Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    if (form.whatsappNumber) {
+      const cleanWA = form.whatsappNumber.replace(/[\s\-\+\(\)]/g, '').slice(-10);
+      if (!/^[6-9]\d{9}$/.test(cleanWA)) {
+        showToast('⚠️ Please enter a valid 10-digit WhatsApp number');
+        return;
+      }
+    }
+
     const method = editingId ? 'PUT' : 'POST';
     const body = editingId ? { id: editingId, householdId: user?.householdId, ...form } : { householdId: user?.householdId, ...form };
     try {

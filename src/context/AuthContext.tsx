@@ -22,6 +22,7 @@ interface AuthContextType {
     householdName: string;
     adminName: string;
     email?: string;
+    phone?: string;
   }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
@@ -80,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     householdName: string;
     adminName: string;
     email?: string;
+    phone?: string;
   }) => {
     try {
       const res = await fetch('/api/auth/register', {

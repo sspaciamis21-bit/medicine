@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { username },
+      where: { username: username.trim() },
       include: {
         household: {
           include: {
@@ -24,8 +24,18 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!user || user.passwordHash !== password) {
-      return NextResponse.json({ success: false, error: 'Invalid username or password' }, { status: 401 });
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        error: 'No account found with this username. Please click "Register Family" to create an account.',
+      }, { status: 404 });
+    }
+
+    if (user.passwordHash !== password) {
+      return NextResponse.json({
+        success: false,
+        error: 'Incorrect password. Please try again.',
+      }, { status: 401 });
     }
 
     return NextResponse.json({
