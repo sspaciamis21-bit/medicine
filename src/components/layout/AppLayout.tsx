@@ -15,6 +15,7 @@ import {
   Sliders 
 } from 'lucide-react';
 import AppHeader from './AppHeader';
+import InstallPrompt from '../pwa/InstallPrompt';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,6 +33,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[#f4f1eb] flex flex-col justify-between text-[#1c2a38]">
+      <InstallPrompt />
       <AppHeader />
       
       <main className="max-w-7xl w-full mx-auto px-3.5 sm:px-6 py-5 flex-1 pb-24 lg:pb-10">

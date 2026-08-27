@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sliders, Clock, Bell, Home, Shield, Save, Volume2, AlertTriangle, Users, Phone, CheckCircle2 } from 'lucide-react';
+import { Sliders, Clock, Bell, Home, Shield, Save, Volume2, AlertTriangle, Users, Phone, CheckCircle2, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -312,6 +312,25 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* PWA & Mobile Installation (Spec §19) */}
+          <div className="medical-card p-5 bg-white space-y-4">
+            <h3 className="font-black text-[#1c2a38] text-sm flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-[#10847e]" /> Mobile Home Screen & PWA Installation (Spec §19)
+            </h3>
+
+            <div className="p-4 bg-linear-to-r from-teal-50 to-emerald-50 rounded-2xl border border-teal-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1 text-xs">
+                <p className="font-extrabold text-[#1c2a38]">Install Family Medicine to Phone Home Screen</p>
+                <p className="text-[#4b5563]">
+                  Enjoy full-screen medicine tracking, lock screen audio alarms, and fast 1-tap launch without opening browser tabs.
+                </p>
+                <p className="text-[11px] text-[#10847e] font-semibold pt-1">
+                  💡 On Chrome Mobile: Tap browser menu (⋮) → &quot;Install app&quot; or &quot;Add to Home screen&quot;.
+                </p>
+              </div>
             </div>
           </div>
 
