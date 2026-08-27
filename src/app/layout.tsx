@@ -43,6 +43,22 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                  for(var reg of regs) { reg.unregister(); }
+                });
+              }
+              if ('caches' in window) {
+                caches.keys().then(function(names) {
+                  for (var name of names) { caches.delete(name); }
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className="min-h-screen bg-[#f4f1eb] text-[#1c2a38] antialiased font-sans flex flex-col justify-between selection:bg-[#10847e] selection:text-white">
         <Providers>
