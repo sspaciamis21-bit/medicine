@@ -1,5 +1,5 @@
-// Service Worker for Family Medicine Tracker (Network-First Strategy)
-const CACHE_NAME = 'medifamily-cache-v4';
+// Service Worker for Push Notifications & Background Alerts
+// (Bypasses caching completely so website updates are instant on every push)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -7,37 +7,9 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          // Delete ALL old caches
-          return caches.delete(cache);
-        })
-      );
+    caches.keys().then((keys) => {
+      return Promise.all(keys.map((key) => caches.delete(key)));
     }).then(() => self.clients.claim())
-  );
-});
-
-// Network-First strategy ensures the latest deployed UI and live data are always fetched
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  const url = new URL(event.request.url);
-
-  // Skip caching for API requests and Next.js HMR
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/webpack-hmr')) {
-    return;
-  }
-
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        return networkResponse;
-      })
-      .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          return cachedResponse || caches.match('/');
-        });
-      })
   );
 });
 
@@ -48,7 +20,7 @@ self.addEventListener('push', (event) => {
     body: 'Time to take your scheduled dose!',
     medicine: 'Medicine',
     dose: '1 Dose',
-    mealContext: 'Scheduled'
+    mealContext: 'Scheduled',
   };
 
   if (event.data) {
@@ -70,9 +42,9 @@ self.addEventListener('push', (event) => {
     actions: [
       { action: 'taken', title: '✅ Mark as Taken' },
       { action: 'snooze', title: '⏰ Snooze 10m' },
-      { action: 'skip', title: '❌ Skip' }
+      { action: 'skip', title: '❌ Skip' },
     ],
-    data: data
+    data: data,
   };
 
   event.waitUntil(
@@ -94,7 +66,7 @@ self.addEventListener('notificationclick', (event) => {
               focusedClient.postMessage({
                 type: 'NOTIFICATION_ACTION',
                 action: action,
-                data: event.notification.data
+                data: event.notification.data,
               });
             }
           });

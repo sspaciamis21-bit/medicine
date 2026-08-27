@@ -6,21 +6,19 @@ import { AuthProvider } from '@/context/AuthContext';
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // 1. Force purge any legacy service worker caches (e.g. medifamily-cache-v1)
+      // 1. Force purge ALL browser CacheStorage to eliminate stale cached HTML
       if ('caches' in window) {
         caches.keys().then((keys) => {
           keys.forEach((key) => {
-            if (key !== 'medifamily-cache-v4') {
-              caches.delete(key);
-            }
+            caches.delete(key);
           });
         });
       }
 
-      // 2. Register & update Service Worker with cache busting
+      // 2. Register & update Service Worker for Push Notifications
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker
-          .register('/sw.js?v=4')
+          .register('/sw.js')
           .then((reg) => {
             reg.update();
           })
@@ -40,7 +38,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         if (isChunkError) {
           const lastReload = sessionStorage.getItem('last_chunk_reload');
           const now = Date.now();
-          if (!lastReload || now - Number(lastReload) > 6000) {
+          if (!lastReload || now - Number(lastReload) > 5000) {
             sessionStorage.setItem('last_chunk_reload', String(now));
             window.location.reload();
           }
