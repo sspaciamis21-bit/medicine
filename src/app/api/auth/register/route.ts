@@ -83,6 +83,13 @@ export async function POST(req: Request) {
       household,
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Registration error:', error);
+    if (error.message?.includes('Authentication failed') || error.message?.includes('database server')) {
+      return NextResponse.json({
+        success: false,
+        error: 'Database connection failed. Please check Hostinger database settings.',
+      }, { status: 500 });
+    }
+    return NextResponse.json({ success: false, error: error.message || 'Registration failed' }, { status: 500 });
   }
 }
