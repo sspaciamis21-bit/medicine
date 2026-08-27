@@ -1,5 +1,5 @@
 // Service Worker for Family Medicine Tracker (Network-First Strategy)
-const CACHE_NAME = 'medifamily-cache-v3';
+const CACHE_NAME = 'medifamily-cache-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
