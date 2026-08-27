@@ -15,16 +15,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         });
       }
 
-      // 2. Register & update Service Worker for Push Notifications
+      // 2. Unregister any lingering service workers (do NOT re-register)
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker
-          .register('/sw.js')
-          .then((reg) => {
-            reg.update();
-          })
-          .catch((err) => {
-            console.warn('Service worker registration error:', err);
-          });
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((reg) => reg.unregister());
+        });
       }
 
       // 3. Auto-recover from deployment ChunkLoadError

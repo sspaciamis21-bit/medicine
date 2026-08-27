@@ -1,7 +1,8 @@
-// Service Worker Self-Purge & Unregister Script
-// Unregisters legacy service workers and purges all stale caches across all client browsers
+// Service Worker Self-Purge Script
+// This SW exists only to replace any previously cached version.
+// It immediately unregisters itself and clears all caches.
 
-self.addEventListener('install', (e) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
@@ -11,14 +12,5 @@ self.addEventListener('activate', (e) => {
       .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
       .then(() => self.registration.unregister())
       .then(() => self.clients.claim())
-      .then(() => {
-        return self.clients.matchAll({ type: 'window' }).then((clients) => {
-          clients.forEach((client) => {
-            if ('navigate' in client) {
-              client.navigate(client.url);
-            }
-          });
-        });
-      })
   );
 });
