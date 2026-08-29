@@ -1,17 +1,39 @@
 {
+  "id": "/",
   "name": "Family Medicine Management & Reminder System",
   "short_name": "Family Medicine",
   "description": "Smart family medicine organizer, meal-linked reminders, loud audio alerts, stock tracking, and expense monitor",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f4f1eb",
   "theme_color": "#10847e",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": ["medical", "health", "lifestyle"],
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Today's Reminders",
+      "url": "/reminders",
+      "description": "View today's scheduled doses and take medicines"
+    },
+    {
+      "name": "Add Medicine",
+      "url": "/medicines",
+      "description": "Add or update prescriptions and inventory"
     }
   ]
 }

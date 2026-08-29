@@ -15,7 +15,6 @@ import {
   Users, 
   BellRing, 
   LogOut, 
-  Plus, 
   LayoutDashboard,
   Volume2,
   VolumeX,
@@ -41,6 +40,9 @@ export default function AppHeader() {
   const [members, setMembers] = useState<FamilyMemberItem[]>([]);
   const [audioEnabled, setAudioEnabled] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+
+  // Check if current user is a test admin user
+  const isTestUser = user?.username?.toLowerCase().includes('test') || user?.username?.toLowerCase() === 'admin';
 
   useEffect(() => {
     if (user?.householdId) {
@@ -86,14 +88,14 @@ export default function AppHeader() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xl tracking-tight text-[#1c2a38]">
+                <span className="font-extrabold text-lg sm:text-xl tracking-tight text-[#1c2a38]">
                   {user?.householdName || 'Family Medicine Management'}
                 </span>
-                <span className="px-2 py-0.5 bg-[#10847e]/10 text-[#10847e] text-[10px] font-bold rounded-md border border-[#10847e]/20">
+                <span className="px-2 py-0.5 bg-[#10847e]/10 text-[#10847e] text-[10px] font-bold rounded-md border border-[#10847e]/20 hidden sm:inline">
                   PORTAL
                 </span>
               </div>
-              <p className="text-[11px] text-[#6b7280] font-medium leading-none mt-0.5">
+              <p className="text-[11px] text-[#6b7280] font-medium leading-none mt-0.5 hidden sm:block">
                 Medicine & Health Organizer
               </p>
             </div>
@@ -102,43 +104,46 @@ export default function AppHeader() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Audio Chime Toggle */}
-          <button
-            onClick={() => setAudioEnabled(!audioEnabled)}
-            className={`p-2 rounded-xl border transition text-xs font-semibold flex items-center gap-1.5 ${
-              audioEnabled
-                ? 'bg-[#10847e]/10 text-[#10847e] border-[#10847e]/30'
-                : 'bg-slate-100 text-slate-400 border-slate-200'
-            }`}
-            title="Audio Alarm Sound Toggle"
-          >
-            {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            <span className="hidden md:inline">{audioEnabled ? 'Alarm Sound ON' : 'Muted'}</span>
-          </button>
+          {/* Test User Audio Chime Badge (Only displayed for test user / admin) */}
+          {isTestUser && (
+            <>
+              <button
+                onClick={() => setAudioEnabled(!audioEnabled)}
+                className={`p-1.5 sm:p-2 rounded-xl border transition text-xs font-semibold flex items-center gap-1.5 ${
+                  audioEnabled
+                    ? 'bg-[#10847e]/10 text-[#10847e] border-[#10847e]/30'
+                    : 'bg-slate-100 text-slate-400 border-slate-200'
+                }`}
+                title="Audio Alarm Sound Toggle (Test Mode)"
+              >
+                {audioEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                <span className="hidden md:inline">{audioEnabled ? 'Alarm ON' : 'Muted'}</span>
+              </button>
 
-          {/* Test Loud Alarm Button */}
-          <button
-            onClick={handleTestAlarm}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ef4f5f] hover:bg-[#dc3545] text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95"
-            title="Test High-Volume Chime"
-          >
-            <BellRing className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Test Alarm</span>
-          </button>
+              <button
+                onClick={handleTestAlarm}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-[#ef4f5f] hover:bg-[#dc3545] text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95"
+                title="Test High-Volume Chime"
+              >
+                <BellRing className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Test Alarm</span>
+              </button>
+            </>
+          )}
 
           {/* User Account / Logout */}
           {user && (
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
               <div className="hidden lg:flex flex-col text-right">
                 <span className="text-xs font-bold text-[#1c2a38] leading-tight">{user.username}</span>
-                <span className="text-[10px] text-[#6b7280]">Admin</span>
+                <span className="text-[10px] text-[#6b7280] capitalize">{user.role || 'Member'}</span>
               </div>
               <button
                 onClick={() => {
                   logout();
                   router.push('/');
                 }}
-                className="p-2 text-slate-400 hover:text-[#ef4f5f] hover:bg-red-50 rounded-xl transition"
+                className="p-2 text-slate-400 hover:text-[#ef4f5f] hover:bg-red-50 rounded-xl transition cursor-pointer"
                 title="Logout"
               >
                 <LogOut className="w-4 h-4" />
@@ -149,14 +154,15 @@ export default function AppHeader() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+            className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+            aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
-      {/* Navigation Links Bar (PharmEasy Desktop Header Style) */}
+      {/* Navigation Links Bar (Desktop Header) */}
       <div className="border-t border-[#f0ece1] bg-[#fbf9f5] px-4 sm:px-6 py-1.5 hidden lg:block">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <nav className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
@@ -186,7 +192,7 @@ export default function AppHeader() {
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Filter:</span>
               <button
                 onClick={() => setSelectedMember('all')}
-                className={`px-2.5 py-1 rounded-full text-xs font-bold transition whitespace-nowrap ${
+                className={`px-2.5 py-1 rounded-full text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                   selectedMember === 'all'
                     ? 'bg-[#10847e] text-white'
                     : 'bg-white text-slate-600 border border-slate-200 hover:border-[#10847e]'
@@ -198,7 +204,7 @@ export default function AppHeader() {
                 <button
                   key={m.id}
                   onClick={() => setSelectedMember(m.id)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-bold transition whitespace-nowrap flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-full text-xs font-bold transition whitespace-nowrap flex items-center gap-1 cursor-pointer ${
                     selectedMember === m.id
                       ? 'bg-[#10847e] text-white'
                       : 'bg-white text-slate-700 border border-slate-200 hover:border-[#10847e]'
@@ -215,7 +221,7 @@ export default function AppHeader() {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-slate-200 p-4 space-y-3">
+        <div className="lg:hidden bg-white border-b border-slate-200 p-4 space-y-3 shadow-lg">
           <div className="grid grid-cols-2 gap-2">
             {navLinks.map((item) => {
               const Icon = item.icon;
@@ -241,14 +247,14 @@ export default function AppHeader() {
           {/* Member Switcher Mobile */}
           {members.length > 0 && (
             <div className="pt-2 border-t border-slate-100">
-              <span className="text-[11px] font-bold text-slate-500 block mb-1.5">Switch Family Member:</span>
+              <span className="text-[11px] font-bold text-slate-500 block mb-1.5">Filter Family Member:</span>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => {
                     setSelectedMember('all');
                     setMobileMenuOpen(false);
                   }}
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold ${
                     selectedMember === 'all' ? 'bg-[#10847e] text-white' : 'bg-slate-100 text-slate-700'
                   }`}
                 >
@@ -261,7 +267,7 @@ export default function AppHeader() {
                       setSelectedMember(m.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 ${
                       selectedMember === m.id ? 'bg-[#10847e] text-white' : 'bg-slate-100 text-slate-700'
                     }`}
                   >
