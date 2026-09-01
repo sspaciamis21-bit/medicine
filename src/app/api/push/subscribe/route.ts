@@ -22,7 +22,9 @@ export async function POST(req: Request) {
         where: { username },
         data: { pushSubscription: subString },
       });
-    } else if (householdId) {
+    }
+
+    if (householdId) {
       await prisma.user.updateMany({
         where: { householdId },
         data: { pushSubscription: subString },

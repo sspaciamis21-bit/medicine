@@ -46,7 +46,7 @@ export default function SettingsPage() {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 3500);
+    setTimeout(() => setToast(null), 4000);
   };
 
   const loadData = async () => {
@@ -120,6 +120,7 @@ export default function SettingsPage() {
 
   const handleEnablePush = async () => {
     if (!user) return;
+    showToast('⏳ Registering device for lock-screen push...');
     const res = await subscribeToPushNotifications(user.householdId, user.username, true);
     if (res.success) {
       setPushStatus('granted');
@@ -132,13 +133,18 @@ export default function SettingsPage() {
   const handleSendTestPush = async () => {
     if (!user) return;
     setTestingPush(true);
-    showToast('🚀 Sending test push... Lock your phone or minimize Chrome now to test!');
+    showToast('🚀 Registering device & sending test push...');
 
     try {
-      // First ensure push subscription is active
-      await subscribeToPushNotifications(user.householdId, user.username, false);
+      // 1. First ensure push subscription is active on server
+      const subRes = await subscribeToPushNotifications(user.householdId, user.username, false);
+      if (!subRes.success) {
+        showToast('⚠️ Could not register device: ' + (subRes.error || 'Permission issue'));
+        setTestingPush(false);
+        return;
+      }
 
-      // Trigger test push endpoint
+      // 2. Trigger test push endpoint
       const res = await fetch('/api/push/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -146,12 +152,12 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        showToast('✅ Test push sent! Check your notification center / lock screen.');
+        showToast('✅ Push sent! Lock your phone now to see the notification banner.');
       } else {
         showToast('⚠️ ' + (data.error || 'Could not send test push'));
       }
-    } catch (e) {
-      showToast('⚠️ Error sending test push');
+    } catch (e: any) {
+      showToast('⚠️ Error sending test push: ' + e.message);
     } finally {
       setTestingPush(false);
     }
