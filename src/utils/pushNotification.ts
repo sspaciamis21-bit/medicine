@@ -1,6 +1,7 @@
 // Client-Side Push Notification Registration & Subscription Manager
+// Browser-safe module for Service Worker Push subscriptions
 
-import { VAPID_PUBLIC_KEY } from '@/lib/vapidKeys';
+import { VAPID_PUBLIC_KEY } from '@/lib/vapidConfig';
 
 export function isPushNotificationSupported(): boolean {
   return (
