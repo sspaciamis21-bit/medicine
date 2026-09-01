@@ -1,7 +1,7 @@
 // Service Worker for Family Medicine Tracker PWA
 // Supports offline app shell, background push reminders, and lock screen actions
 
-const CACHE_NAME = 'medifamily-app-v5';
+const CACHE_NAME = 'medifamily-app-v6';
 const STATIC_ASSETS = [
   '/',
   '/dashboard',
@@ -57,7 +57,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        // Cache successful responses for offline access
         if (networkResponse && networkResponse.status === 200 && event.request.url.startsWith(self.location.origin)) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -81,14 +80,13 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification receiver (fires even when Chrome / browser is closed)
+// Push notification receiver (fires even when Chrome / browser is completely closed)
 self.addEventListener('push', (event) => {
   let data = {
     title: '🔔 Medicine Reminder',
     body: 'Time to take your scheduled dose!',
     medicine: 'Medicine',
     dose: '1 Dose',
-    mealContext: 'Scheduled',
   };
 
   if (event.data) {
@@ -100,15 +98,15 @@ self.addEventListener('push', (event) => {
   }
 
   const options = {
-    body: `${data.body || 'Time for ' + data.medicine}\n${data.dose ? data.dose + ' • ' : ''}${data.mealContext || ''}`,
+    body: data.body || `Time to take ${data.medicine}`,
     icon: '/icon.svg',
     badge: '/icon.svg',
-    vibrate: [300, 150, 300, 150, 600],
+    vibrate: [400, 200, 400, 200, 800],
     tag: 'medicine-reminder-' + (data.id || Date.now()),
     renotify: true,
     requireInteraction: true,
     actions: [
-      { action: 'taken', title: '✅ Mark as Taken' },
+      { action: 'taken', title: '✅ Mark Taken' },
       { action: 'snooze', title: '⏰ Snooze 10m' },
       { action: 'skip', title: '⏭️ Skip' },
     ],
@@ -120,12 +118,30 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Notification action handler
+// Notification click & action handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const action = event.action;
+  const data = event.notification.data || {};
   const urlToOpen = '/reminders';
 
+  // Handle action buttons directly in background
+  if (action === 'taken' && data.id) {
+    event.waitUntil(
+      fetch('/api/dose-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          medicineId: data.id,
+          memberId: data.memberId,
+          scheduledDateTime: new Date().toISOString(),
+          status: 'taken',
+        }),
+      }).catch(() => {})
+    );
+  }
+
+  // Open or focus app window
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       for (let client of windowClients) {
@@ -135,7 +151,7 @@ self.addEventListener('notificationclick', (event) => {
               focusedClient.postMessage({
                 type: 'NOTIFICATION_ACTION',
                 action: action,
-                data: event.notification.data,
+                data: data,
               });
             }
           });

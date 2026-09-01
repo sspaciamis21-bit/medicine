@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import AppHeader from './AppHeader';
 import InstallPrompt from '../pwa/InstallPrompt';
+import PushNotificationManager from '../pwa/PushNotificationManager';
 import GlobalReminderDaemon from '../medicine/GlobalReminderDaemon';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#f4f1eb] flex flex-col justify-between text-[#1c2a38]">
       <InstallPrompt />
+      <PushNotificationManager />
       <GlobalReminderDaemon />
       <AppHeader />
       

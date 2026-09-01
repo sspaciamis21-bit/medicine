@@ -16,12 +16,14 @@ import {
   Music, 
   Download, 
   Sparkles,
-  VolumeX
+  Send,
+  ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/context/AuthContext';
 import { alarmEngine, AVAILABLE_CHIME_TONES, ChimeToneId } from '@/utils/audioAlarm';
+import { subscribeToPushNotifications } from '@/utils/pushNotification';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -39,6 +41,8 @@ export default function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [testingPush, setTestingPush] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string>('checking');
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -48,6 +52,10 @@ export default function SettingsPage() {
   const loadData = async () => {
     try {
       setSelectedTone(alarmEngine.getSelectedTone());
+
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        setPushStatus(Notification.permission);
+      }
 
       const [hRes, phRes] = await Promise.all([
         fetch(`/api/household${user?.householdId ? `?id=${user.householdId}` : ''}`),
@@ -82,7 +90,6 @@ export default function SettingsPage() {
   useEffect(() => {
     loadData();
 
-    // Check PWA installation state
     if (typeof window !== 'undefined') {
       if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
         setIsInstalled(true);
@@ -109,6 +116,45 @@ export default function SettingsPage() {
   const handlePreviewTone = (e: React.MouseEvent, toneId: ChimeToneId) => {
     e.stopPropagation();
     alarmEngine.playTone(toneId);
+  };
+
+  const handleEnablePush = async () => {
+    if (!user) return;
+    const res = await subscribeToPushNotifications(user.householdId, user.username, true);
+    if (res.success) {
+      setPushStatus('granted');
+      showToast('🎉 Push Notifications enabled! A welcome push was sent to this device.');
+    } else {
+      showToast('⚠️ ' + (res.error || 'Failed to enable push notifications'));
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    if (!user) return;
+    setTestingPush(true);
+    showToast('🚀 Sending test push... Lock your phone or minimize Chrome now to test!');
+
+    try {
+      // First ensure push subscription is active
+      await subscribeToPushNotifications(user.householdId, user.username, false);
+
+      // Trigger test push endpoint
+      const res = await fetch('/api/push/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user.username, householdId: user.householdId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✅ Test push sent! Check your notification center / lock screen.');
+      } else {
+        showToast('⚠️ ' + (data.error || 'Could not send test push'));
+      }
+    } catch (e) {
+      showToast('⚠️ Error sending test push');
+    } finally {
+      setTestingPush(false);
+    }
   };
 
   const handleInstallClick = async () => {
@@ -185,7 +231,7 @@ export default function SettingsPage() {
             <Sliders className="w-5 h-5 text-[#10847e]" /> Application & Household Settings
           </h1>
           <p className="text-xs text-[#6b7280] mt-0.5">
-            Configure meal schedules, choose reminder chime voices, set alarm preferences, and install the mobile app.
+            Configure meal schedules, choose reminder chime voices, enable lock-screen push notifications, and manage the app.
           </p>
         </div>
 
@@ -275,6 +321,60 @@ export default function SettingsPage() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* 🔔 Lock-Screen Push Notifications (When Chrome is Closed) */}
+          <div className="medical-card p-5 bg-white space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-[#1c2a38] text-sm flex items-center gap-2">
+                <Bell className="w-4 h-4 text-[#10847e]" /> Lock-Screen Push Reminders (When Chrome is Closed)
+              </h3>
+              {pushStatus === 'granted' ? (
+                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> Push Active
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">
+                  Permission Required
+                </span>
+              )}
+            </div>
+
+            <p className="text-xs text-[#6b7280]">
+              Server-side Web Push sends reminder alerts directly to your phone/PC notification tray and lock screen (just like WhatsApp) even when Chrome is completely closed.
+            </p>
+
+            <div className="p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="space-y-1 text-xs">
+                <p className="font-extrabold text-blue-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-blue-600" /> Test Lock-Screen Push Notification
+                </p>
+                <p className="text-blue-700 text-[11px]">
+                  Click the button below, then immediately minimize or close Chrome to see the notification drop down!
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {pushStatus !== 'granted' && (
+                  <button
+                    type="button"
+                    onClick={handleEnablePush}
+                    className="px-4 py-2.5 bg-[#10847e] hover:bg-[#0d6e69] text-white font-extrabold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer"
+                  >
+                    Enable Push
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSendTestPush}
+                  disabled={testingPush}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  {testingPush ? 'Sending...' : 'Send Test Push'}
+                </button>
+              </div>
             </div>
           </div>
 
