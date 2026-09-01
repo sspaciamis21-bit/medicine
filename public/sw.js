@@ -1,7 +1,7 @@
 // Service Worker for Family Medicine Tracker PWA
-// Supports offline app shell, background push reminders, and lock screen actions
+// Supports offline app shell, background push reminders, lock screen persistence, and audio
 
-const CACHE_NAME = 'medifamily-app-v6';
+const CACHE_NAME = 'medifamily-app-v7';
 const STATIC_ASSETS = [
   '/',
   '/dashboard',
@@ -14,10 +14,11 @@ const STATIC_ASSETS = [
   '/history',
   '/settings',
   '/icon.svg',
+  '/alarm.wav',
   '/manifest.json',
 ];
 
-// Install: Cache critical static assets
+// Install: Cache static assets
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -44,12 +45,11 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Network-First strategy (always get fresh data online; fallback to cache offline)
+// Fetch: Network-First strategy
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
-  // Skip API requests and Next.js hot reload
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/webpack-hmr')) {
     return;
   }
@@ -80,7 +80,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification receiver (fires even when Chrome / browser is completely closed)
+// Push notification receiver (Persistent Lock Screen Alert)
 self.addEventListener('push', (event) => {
   let data = {
     title: '🔔 Medicine Reminder',
@@ -101,10 +101,12 @@ self.addEventListener('push', (event) => {
     body: data.body || `Time to take ${data.medicine}`,
     icon: '/icon.svg',
     badge: '/icon.svg',
-    vibrate: [400, 200, 400, 200, 800],
+    sound: '/alarm.wav',
+    silent: false,
+    vibrate: [500, 200, 500, 200, 500, 200, 1000],
     tag: 'medicine-reminder-' + (data.id || Date.now()),
     renotify: true,
-    requireInteraction: true,
+    requireInteraction: true, // Prevents automatic dismissal; keeps notification pinned
     actions: [
       { action: 'taken', title: '✅ Mark Taken' },
       { action: 'snooze', title: '⏰ Snooze 10m' },
@@ -141,19 +143,17 @@ self.addEventListener('notificationclick', (event) => {
     );
   }
 
-  // Open or focus app window
+  // Open or focus app window and auto-play alarm chime
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       for (let client of windowClients) {
         if (client.url.includes(urlToOpen) && 'focus' in client) {
           return client.focus().then((focusedClient) => {
-            if (action) {
-              focusedClient.postMessage({
-                type: 'NOTIFICATION_ACTION',
-                action: action,
-                data: data,
-              });
-            }
+            focusedClient.postMessage({
+              type: 'NOTIFICATION_OPENED',
+              action: action,
+              data: data,
+            });
           });
         }
       }

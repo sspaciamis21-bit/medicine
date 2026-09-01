@@ -15,6 +15,33 @@ export default function GlobalReminderDaemon() {
   const firedKeysRef = useRef<Set<string>>(new Set());
   const snoozedUntilRef = useRef<Map<string, number>>(new Map());
 
+  // Listen for service worker notification click messages
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'NOTIFICATION_OPENED') {
+          const medData = event.data.data;
+          if (medData) {
+            setActiveAlarmMed({
+              id: medData.id,
+              name: medData.medicine || 'Scheduled Medicine',
+              doseAmount: 1,
+              unit: 'Tablets',
+              member: { name: medData.memberName || 'Family Member' },
+              specificTime: medData.time,
+              currentQuantity: 10,
+            });
+            setIsAlarmOpen(true);
+            alarmEngine.startAlarmLoop();
+          }
+        }
+      };
+
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+      return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
+    }
+  }, []);
+
   // Request browser notification permission once on user gesture
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -44,12 +71,10 @@ export default function GlobalReminderDaemon() {
 
   useEffect(() => {
     fetchMedicines();
-    // Poll for changes every 20 seconds
     const pollInterval = setInterval(fetchMedicines, 20000);
     return () => clearInterval(pollInterval);
   }, [user?.householdId]);
 
-  // Convert time string (e.g., "11:40 AM", "08:00 AM", "11:40") to total minutes from midnight
   const parseTimeToMinutes = (timeStr: string): number => {
     if (!timeStr) return -1;
     const clean = timeStr.trim();
@@ -78,7 +103,6 @@ export default function GlobalReminderDaemon() {
       const todayDateStr = now.toISOString().split('T')[0];
 
       for (const med of medicines) {
-        // Respect course start & end dates
         if (med.courseStartDate && todayDateStr < med.courseStartDate) continue;
         if (med.courseEndDate && todayDateStr > med.courseEndDate) continue;
 
@@ -89,20 +113,17 @@ export default function GlobalReminderDaemon() {
 
           const doseKey = `${med.id}-${s.id || s.specificTime}-${todayDateStr}-${targetMin}`;
 
-          // Check if snoozed
           const snoozeExpiry = snoozedUntilRef.current.get(med.id);
           if (snoozeExpiry && Date.now() < snoozeExpiry) {
             continue;
           }
 
-          // If within current minute window and not yet fired
           if (currentTotalMin === targetMin && !firedKeysRef.current.has(doseKey)) {
             firedKeysRef.current.add(doseKey);
 
             const memberName = med.member?.name || 'Family Member';
             const memberRelation = med.member?.relationship ? ` (${med.member.relationship})` : '';
 
-            // Alarm Modal Payload
             const alarmPayload = {
               id: med.id,
               name: med.name,
@@ -121,10 +142,10 @@ export default function GlobalReminderDaemon() {
             setActiveAlarmMed(alarmPayload);
             setIsAlarmOpen(true);
 
-            // 1. Play chosen audio alarm tone & mobile vibration
+            // 1. Start synthesized alarm loop
             alarmEngine.startAlarmLoop();
 
-            // 2. Fire native desktop / lock-screen notification with Member Name, Medicine Name & Time
+            // 2. Fire system notification
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
               try {
                 new Notification(`🔔 Medicine Reminder: ${med.name}`, {
